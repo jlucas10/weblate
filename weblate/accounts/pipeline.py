@@ -107,7 +107,7 @@ def parse_github_emails(
             continue
 
         # Skip noreply e-mail only if we need deliverable e-mails
-        if address.endswith("@users.noreply.github.com"):
+        if address.endswith("@noreply.codeberg.org"):
             # Add E-Mail and set is_deliverable to false
             emails.append((address, False))
             continue
@@ -117,10 +117,6 @@ def parse_github_emails(
 
         # Add E-Mail and set is_deliverable to true
         emails.append((address, True))
-        if entry.get("visibility") == "public":
-            # There is just one public mail, prefer it
-            public = address
-            continue
         email = address
         if entry.get("primary"):
             primary = address
@@ -152,6 +148,13 @@ def reauthenticate(
 def require_email(backend, details, weblate_action, user=None, is_new=False, **kwargs):
     """Force entering e-mail for backends which don't provide it."""
     if backend.name == "github" and "emails" in kwargs["response"]:
+        email, emails = parse_github_emails(kwargs["response"]["emails"])
+        details["verified_emails"] = emails
+        if email is not None:
+            details["email"] = email
+
+    # CODEBERG / GITEA
+    if backend.name == "gitea" and "emails" in kwargs["response"]:
         email, emails = parse_github_emails(kwargs["response"]["emails"])
         details["verified_emails"] = emails
         if email is not None:
