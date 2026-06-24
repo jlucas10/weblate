@@ -1367,6 +1367,25 @@ class RegistrationTest(BaseRegistrationTest):
                 ("noreply@users.noreply.github.com", False),
             },
         )
+    
+    # Test added to parse secondary email 
+    def test_parse_codeberg_emails(self) -> None:
+        """Test parsing of Codeberg/Gitea email payloads."""
+        from weblate.accounts.pipeline import parse_codeberg_emails
+
+        payload = [
+            {"email": "primary@codeberg.org", "verified": True, "primary": True},
+            {"email": "secondary@codeberg.org", "verified": True, "primary": False},
+            {"email": "test@noreply.codeberg.org", "verified": True, "primary": False},
+        ]
+        email, emails = parse_codeberg_emails(payload)
+        
+        # Verify it isolates the correct primary address
+        self.assertEqual(email, "primary@codeberg.org")
+        # Verify it records secondary allocations accurately
+        self.assertIn(("secondary@codeberg.org", True), emails)
+        # Verify it flags system fallback nodes as non-deliverable
+        self.assertIn(("test@noreply.codeberg.org", False), emails)
 
     def test_store_email_multiple_existing(self) -> None:
         """Store email when an identity has several verified e-mails."""
